@@ -1,0 +1,144 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MergeLinesDialogBase</class>
+ <widget class="QDialog" name="MergeLinesDialogBase">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>460</width>
+    <height>189</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MergeLines</string>
+  </property>
+  <widget class="QComboBox" name="layerComboBox">
+   <property name="geometry">
+    <rect>
+     <x>183</x>
+     <y>20</y>
+     <width>261</width>
+     <height>27</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_1">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>20</y>
+     <width>161</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Input line layer:</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_2">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>60</y>
+     <width>161</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Merging method:</string>
+   </property>
+  </widget>
+  <widget class="QComboBox" name="mergingComboBox">
+   <property name="geometry">
+    <rect>
+     <x>183</x>
+     <y>60</y>
+     <width>261</width>
+     <height>27</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QProgressBar" name="progressBar">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>150</y>
+     <width>231</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="value">
+    <number>0</number>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="runButton">
+   <property name="geometry">
+    <rect>
+     <x>360</x>
+     <y>150</y>
+     <width>81</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>OK</string>
+   </property>
+  </widget>
+  <widget class="QPushButton" name="closeButton">
+   <property name="geometry">
+    <rect>
+     <x>270</x>
+     <y>150</y>
+     <width>81</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Cancel</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_3">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>100</y>
+     <width>161</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Output layer name:</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="outputLayerEdit">
+   <property name="geometry">
+    <rect>
+     <x>183</x>
+     <y>100</y>
+     <width>261</width>
+     <height>27</height>
+    </rect>
+   </property>
+  </widget>
+ </widget>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>closeButton</sender>
+   <signal>clicked()</signal>
+   <receiver>MergeLinesDialogBase</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>247</x>
+     <y>253</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>199</x>
+     <y>149</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

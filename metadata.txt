@@ -1,0 +1,39 @@
+# This file contains metadata for your plugin. Since 
+# version 2.0 of QGIS this is the proper way to supply 
+# information about a plugin. The old method of 
+# embedding metadata in __init__.py will 
+# is no longer supported since version 2.0.
+
+# This file should be included when you package your plugin.# Mandatory items:
+
+[general]
+name=MergeLines
+qgisMinimumVersion=2.0
+description=Simplifies the topology of a line network by merging adjacent lines
+version=0.1.0
+author=Alexandre Delahaye
+email=menoetios@gmail.com
+
+about=This plugin merges segments of a line network (e.g. river network) in order to simplify its topology. Two merging methods are currently available : length (a segment is merged with its longest neighbor) and alignment (a segment is merged with its best aligned neighbor).
+
+tracker=https://github.com/ArMoraer/QGISMergeLines/issues
+repository=https://github.com/ArMoraer/QGISMergeLines
+# End of mandatory metadata
+
+# Recommended items:
+
+# Uncomment the following line and add your changelog:
+# changelog=
+
+# Tags are comma separated with spaces allowed
+tags=layers, vector, line, geometry
+
+homepage=https://github.com/ArMoraer/QGISMergeLines
+category=Vector
+icon=img/icon.png
+# experimental flag
+experimental=False
+
+# deprecated flag (applies to the whole plugin, not just a single version)
+deprecated=False
+
