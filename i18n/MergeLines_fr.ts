@@ -3,12 +3,12 @@
 <context>
     <name>MergeLines</name>
     <message>
-        <location filename="../merge_lines.py" line="413"/>
+        <location filename="../merge_lines.py" line="420"/>
         <source>Length</source>
         <translation>Longueur</translation>
     </message>
     <message>
-        <location filename="../merge_lines.py" line="413"/>
+        <location filename="../merge_lines.py" line="420"/>
         <source>Alignment</source>
         <translation>Orientation</translation>
     </message>

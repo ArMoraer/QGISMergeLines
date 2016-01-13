@@ -15,6 +15,15 @@ Two merging methods are currently available :
 * length: a line is merged with its longest neighbor;
 * alignment: a line is merged with its best aligned neighbor (gives more "natural" results when dealing with a river network).
 
+Difference with other plugins
+-----------------------------
+
+There already are 3 plugins that serve a similar, albeit different purpose : "Join lines", "Join multiples lines" and "Multiline join".
+
+The main difference between the first two plugins and MergeLines is that MergeLines automatically merges features in a line layer, which proves useful when dealing with a large number of lines. In "Join lines" and "Join multiples lines", features have to be manually selected.
+
+"Multiline join" deals with polylines. Its goal is to simplify polylines by merging parts a polyline together. MergeLines deals with networks of simple lines, and merges these lines according to various rules (which should become more complex in the near future).
+
 UI
 --
 

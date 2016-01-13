@@ -198,7 +198,7 @@ class MergeLines(QObject):
 		inputLayer = self.dlg.layerComboBox.itemData( self.dlg.layerComboBox.currentIndex() )
 		params = {'mergingMethod': self.dlg.mergingComboBox.currentIndex(),
 			'outputLayerName': self.dlg.outputLayerEdit.text()}
-		self.v = False
+		self.v = False # verbose
 		self.joinLines( inputLayer, params )
 
 	@pyqtSlot()
@@ -227,7 +227,6 @@ class MergeLines(QObject):
 		outputLayer.updateFields() # tell the vector layer to fetch changes from the provider
 		outputLayer.startEditing()
 
-
 		# copy input layer to output layer
 		outPr.addFeatures( list(layer.getFeatures()) )
 
@@ -235,13 +234,16 @@ class MergeLines(QObject):
 		featureList = sorted( list(outputLayer.getFeatures()), key=lambda feature: feature.geometry().length(), reverse=True ) # sort lines by descending length
 		featureNumber = len(featureList)
 
+		#**************** TMP
+		for feature in featureList: print "L{0} = id {1}".format(feature.id(), feature.attribute("id"))
+		#****************
+
 		# if mergingMethod is 'alignment', construct a dict with the orientation of each line
 		if params['mergingMethod'] == 1:
 			orientationDict = {}
 			for feature in featureList:
 				if not feature.geometry().isMultipart(): # multipart lines are ignored
 					orientationDict[feature.id()] = self.getOrientation( feature )
-			# print orientationDict
 			params['orientationDict'] = orientationDict
 
 		# iterates on lines
@@ -270,7 +272,7 @@ class MergeLines(QObject):
 
 			elif len(connectedLines) == 1:
 				# Line is connected to one line -> merging current line with it
-				if self.v: print "| Merging with line %d" %  connectedLines[0].id()
+				if self.v: print "| Merging with line %d" % connectedLines[0].id()
 				delFeaturesID = self.mergeLines( feature, connectedLines[0], outPr, params )
 
 			else:
@@ -307,7 +309,6 @@ class MergeLines(QObject):
 		for ifeature in layer.getFeatures():
 
 			if ifeature.geometry().isMultipart(): # multipart lines are ignored
-				#if self.v: print "| Line {} is multipart, ignored".format(ifeature.id())
 				continue
 
 			ipoints = ifeature.geometry().asPolyline()
@@ -340,10 +341,15 @@ class MergeLines(QObject):
 			minDiff = 180
 			featureOrientation = orientationDict[feature.id()]
 			for line in connectedLines:
-				if line.id() in orientationDict:
-					if abs( orientationDict[line.id()] - featureOrientation ) < minDiff:
-						mergingLine = line
-						minDiff = abs( orientationDict[line.id()] - featureOrientation )
+				if not line.id() in orientationDict:
+					orientationDict = params['orientationDict']
+					orientationDict[line.id()] = self.getOrientation( line )
+					params['orientationDict'] = orientationDict
+
+				# if self.v: print "| | ID {}: orient={}".format(line.id(), orientationDict[line.id()])
+				if abs( orientationDict[line.id()] - featureOrientation ) < minDiff:
+					mergingLine = line
+					minDiff = abs( orientationDict[line.id()] - featureOrientation )
 
 		return mergingLine
 	
@@ -352,7 +358,7 @@ class MergeLines(QObject):
 		"""Merge 2 lines and their attributes. Update <params.orientationDict>"""
 		
 		# For now, the rule is simply to overwrite <feature2> attributes with <feature1> attributes
-		mergedFeature = QgsFeature()
+		mergedFeature = QgsFeature( feature1.id() )
 		mergedFeature.setGeometry( feature1.geometry().combine(feature2.geometry()) )
 		mergedFeature.setAttributes( feature1.attributes() )
 		
@@ -361,17 +367,18 @@ class MergeLines(QObject):
 		dataProvider.deleteFeatures( [feature1.id(), feature2.id()] )
 		dataProvider.addFeatures( [mergedFeature] )
 
-		# Update params.orientationDict (delete <feature2> and update orientation of <feature1>)
+		# Update params.orientationDict (delete <feature1> and <feature2> and update orientation of <mergedFeature>)
 		if params['mergingMethod'] == 1:
-			orientationDict = params['orientationDict']
-			if feature2.id() in orientationDict: 
-				del orientationDict[feature2.id()]
-			if self.v: print "| Orient. of line {0}: {1} -> ".format(feature1.id(), orientationDict[feature1.id()]),
-			orientationDict[feature1.id()] = self.getOrientation( mergedFeature )
-			params['orientationDict'] = orientationDict
-			if self.v: print orientationDict[feature1.id()]
 
-		return [feature1.id(), feature2.id()]
+			orientationDict = params['orientationDict']
+			if self.v: print "| Orient. of line {0}: {1} -> ".format(feature1.id(), orientationDict[feature1.id()])#,
+			if feature1.id() in orientationDict: del orientationDict[feature1.id()] # delete <feature1>
+			if feature2.id() in orientationDict: del orientationDict[feature2.id()] # delete <feature2>
+			# orientationDict[mergedFeature.id()] = self.getOrientation( feature1 ) # update orientation of <mergedFeature> NOT WORKING (mergedFeature.id()==0)
+			params['orientationDict'] = orientationDict
+			# if self.v: print orientationDict[mergedFeature.id()]
+
+		return [feature2.id()]
 	
 
 	def getOrientation( self, feature ):

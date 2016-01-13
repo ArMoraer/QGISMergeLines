@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/plugins/MergeLines" >
+    <qresource prefix="/plugins/MergeLines/img" >
         <file>icon.png</file>
     </qresource>
 </RCC>
