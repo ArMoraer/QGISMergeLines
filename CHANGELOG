@@ -1,0 +1,4 @@
+0.1.1
+- Fix orientation merging bug.
+- Icon moved to img folder.
+- Added "Difference with other plugins" section in README.
