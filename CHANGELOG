@@ -1,4 +1,8 @@
+0.2.0
+- Improvment of alignment merging (avoid merging with "reverse" alignment).
+- Added "Connection tolerance" option.
+
 0.1.1
-- Fix orientation merging bug.
+- Fix alignment merging bug.
 - Icon moved to img folder.
 - Added "Difference with other plugins" section in README.

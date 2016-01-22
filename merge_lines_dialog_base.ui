@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>460</width>
-    <height>189</height>
+    <width>459</width>
+    <height>243</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -16,7 +16,7 @@
   <widget class="QComboBox" name="layerComboBox">
    <property name="geometry">
     <rect>
-     <x>183</x>
+     <x>180</x>
      <y>20</y>
      <width>261</width>
      <height>27</height>
@@ -40,7 +40,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>60</y>
+     <y>100</y>
      <width>161</width>
      <height>21</height>
     </rect>
@@ -52,8 +52,8 @@
   <widget class="QComboBox" name="mergingComboBox">
    <property name="geometry">
     <rect>
-     <x>183</x>
-     <y>60</y>
+     <x>180</x>
+     <y>100</y>
      <width>261</width>
      <height>27</height>
     </rect>
@@ -63,7 +63,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>150</y>
+     <y>200</y>
      <width>231</width>
      <height>31</height>
     </rect>
@@ -72,11 +72,63 @@
     <number>0</number>
    </property>
   </widget>
+  <widget class="QLabel" name="label_3">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>60</y>
+     <width>161</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Output layer name:</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="outputLayerEdit">
+   <property name="geometry">
+    <rect>
+     <x>180</x>
+     <y>60</y>
+     <width>261</width>
+     <height>27</height>
+    </rect>
+   </property>
+  </widget>
+  <widget class="QCheckBox" name="toleranceCheckBox">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>140</y>
+     <width>181</width>
+     <height>22</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Connection tolerance:</string>
+   </property>
+  </widget>
+  <widget class="QDoubleSpinBox" name="toleranceSpinBox">
+   <property name="geometry">
+    <rect>
+     <x>270</x>
+     <y>140</y>
+     <width>171</width>
+     <height>27</height>
+    </rect>
+   </property>
+   <property name="decimals">
+    <number>6</number>
+   </property>
+   <property name="maximum">
+    <double>999.990000000000009</double>
+   </property>
+  </widget>
   <widget class="QPushButton" name="runButton">
    <property name="geometry">
     <rect>
      <x>360</x>
-     <y>150</y>
+     <y>200</y>
      <width>81</width>
      <height>27</height>
     </rect>
@@ -89,36 +141,13 @@
    <property name="geometry">
     <rect>
      <x>270</x>
-     <y>150</y>
+     <y>200</y>
      <width>81</width>
      <height>27</height>
     </rect>
    </property>
    <property name="text">
     <string>Cancel</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_3">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>100</y>
-     <width>161</width>
-     <height>21</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Output layer name:</string>
-   </property>
-  </widget>
-  <widget class="QLineEdit" name="outputLayerEdit">
-   <property name="geometry">
-    <rect>
-     <x>183</x>
-     <y>100</y>
-     <width>261</width>
-     <height>27</height>
-    </rect>
    </property>
   </widget>
  </widget>

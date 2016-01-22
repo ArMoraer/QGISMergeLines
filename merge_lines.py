@@ -174,6 +174,7 @@ class MergeLines(QObject):
 			callback=self.run,
 			parent=self.iface.mainWindow())
 		self.dlg.runButton.clicked.connect( self.onStart )
+		self.dlg.toleranceCheckBox.clicked.connect( self.setTolerance )
 		self.partDone.connect( self.updateProgressBar )
 		self.allDone.connect( self.onFinished )
 
@@ -196,18 +197,28 @@ class MergeLines(QObject):
 
 		# input params
 		inputLayer = self.dlg.layerComboBox.itemData( self.dlg.layerComboBox.currentIndex() )
+		if self.dlg.toleranceCheckBox.isChecked(): tolerance = self.dlg.toleranceSpinBox.value()
+		else: tolerance = 0
 		params = {'mergingMethod': self.dlg.mergingComboBox.currentIndex(),
-			'outputLayerName': self.dlg.outputLayerEdit.text()}
+			'outputLayerName': self.dlg.outputLayerEdit.text(),
+			'tolerance': tolerance}
 		self.v = False # verbose
 		self.joinLines( inputLayer, params )
 
 	@pyqtSlot()
 	def onFinished(self):
 		self.dlg.progressBar.setValue( 100 )
-		self.dlg.runButton.setEnabled(True)
+		# self.dlg.runButton.setEnabled(True)
 		self.dlg.closeButton.setEnabled(True)
 		self.dlg.layerComboBox.setEnabled(True)
 		self.dlg.mergingComboBox.setEnabled(True)
+
+	@pyqtSlot()
+	def setTolerance(self):
+		if self.dlg.toleranceCheckBox.isChecked():
+			self.dlg.toleranceSpinBox.setEnabled(True)
+		else:
+			self.dlg.toleranceSpinBox.setEnabled(False)
 
 
 	def joinLines( self, layer, params ):
@@ -231,12 +242,9 @@ class MergeLines(QObject):
 		outPr.addFeatures( list(layer.getFeatures()) )
 
 		deletedFeaturesID = []
+		# TODO future improvment: first list features whose both endpoints are connected, then list the others (affluents)
 		featureList = sorted( list(outputLayer.getFeatures()), key=lambda feature: feature.geometry().length(), reverse=True ) # sort lines by descending length
 		featureNumber = len(featureList)
-
-		#**************** TMP
-		for feature in featureList: print "L{0} = id {1}".format(feature.id(), feature.attribute("id"))
-		#****************
 
 		# if mergingMethod is 'alignment', construct a dict with the orientation of each line
 		if params['mergingMethod'] == 1:
@@ -260,7 +268,7 @@ class MergeLines(QObject):
 				continue
 
 			# get lines connected to current feature (i.e. lines that share one extremity)
-			connectedLines = self.getConnectedLines( outputLayer, feature, deletedFeaturesID )
+			connectedLines = self.getConnectedLines( outputLayer, feature, deletedFeaturesID, params )
 			if self.v: print "| %d connected lines" % len(connectedLines)
 
 			# merging
@@ -293,7 +301,7 @@ class MergeLines(QObject):
 		self.allDone.emit()
 
 
-	def getConnectedLines( self, layer, feature, deletedFeaturesID ):
+	def getConnectedLines( self, layer, feature, deletedFeaturesID, params ):
 		"""Get all lines which are connected to <feature> by one endpoint"""
 	
 		connectedLines = []
@@ -314,9 +322,19 @@ class MergeLines(QObject):
 			ipoints = ifeature.geometry().asPolyline()
 			iendPt0 = ipoints[0]
 			iendPt1 = ipoints[-1]
+
 			# check if one endpoint of <feature> is equal to one endpoint of <ifeature>
-			if ( (endPt0 == iendPt0) or (endPt0 == iendPt1) or (endPt1 == iendPt0) or (endPt1 == iendPt1) ) and (feature.id() != ifeature.id()) and not (ifeature.id() in deletedFeaturesID):
-				connectedLines.append(ifeature)
+			tol = params['tolerance']
+			d = QgsDistanceArea()
+			if tol == 0:
+				if ( (endPt0 == iendPt0) or (endPt0 == iendPt1) or (endPt1 == iendPt0) or (endPt1 == iendPt1) ) \
+					and (feature.id() != ifeature.id()) and not (ifeature.id() in deletedFeaturesID):
+					connectedLines.append(ifeature)
+			else:
+				if ( (d.measureLine(endPt0, iendPt0) <= tol) or (d.measureLine(endPt0, iendPt1) <= tol) \
+					or (d.measureLine(endPt1, iendPt0) <= tol) or (d.measureLine(endPt1, iendPt1) <= tol) ) \
+					and (feature.id() != ifeature.id()) and not (ifeature.id() in deletedFeaturesID):
+					connectedLines.append(ifeature)
 				
 		return connectedLines
 	
@@ -330,7 +348,7 @@ class MergeLines(QObject):
 
 			maxLength = 0
 			for line in connectedLines:
-				#if self.v: print "| | ID {}: len={}".format(line.id(), line.geometry().length())
+				if self.v: print "| | ID {}: len={}".format(line.id(), line.geometry().length())
 				if line.geometry().length() > maxLength:
 					mergingLine = line
 					maxLength = line.geometry().length()
@@ -340,14 +358,32 @@ class MergeLines(QObject):
 			orientationDict = params['orientationDict']
 			minDiff = 180
 			featureOrientation = orientationDict[feature.id()]
+			featureEndPt0 = feature.geometry().asPolyline()[0]
+			featureEndPt1 = feature.geometry().asPolyline()[-1]
+
+			if self.v: print "| Orient. of line {0}: {1}".format(feature.id(), featureOrientation)
+
 			for line in connectedLines:
+
+				# line.id() may be missing from orientationDict 
 				if not line.id() in orientationDict:
 					orientationDict = params['orientationDict']
 					orientationDict[line.id()] = self.getOrientation( line )
 					params['orientationDict'] = orientationDict
 
-				# if self.v: print "| | ID {}: orient={}".format(line.id(), orientationDict[line.id()])
-				if abs( orientationDict[line.id()] - featureOrientation ) < minDiff:
+				# Processing line orientation to avoid reverse orientation issue
+				# If <feature> and <line> are connected with the same enpoint (i.e. first with first or last with last), then reverse <line> orientation
+				orient = orientationDict[line.id()]
+				lineEndPt0 = line.geometry().asPolyline()[0]
+				lineEndPt1 = line.geometry().asPolyline()[-1]
+
+				if ( (featureEndPt0 == lineEndPt0) or (featureEndPt1 == lineEndPt1) ):
+					orient = orient + 180 % 360
+
+				if self.v: print "| | ID {}: orient={}".format(line.id(), orient)
+
+				# Finally
+				if abs( orient - featureOrientation ) < minDiff:
 					mergingLine = line
 					minDiff = abs( orientationDict[line.id()] - featureOrientation )
 
@@ -371,12 +407,10 @@ class MergeLines(QObject):
 		if params['mergingMethod'] == 1:
 
 			orientationDict = params['orientationDict']
-			if self.v: print "| Orient. of line {0}: {1} -> ".format(feature1.id(), orientationDict[feature1.id()])#,
 			if feature1.id() in orientationDict: del orientationDict[feature1.id()] # delete <feature1>
 			if feature2.id() in orientationDict: del orientationDict[feature2.id()] # delete <feature2>
 			# orientationDict[mergedFeature.id()] = self.getOrientation( feature1 ) # update orientation of <mergedFeature> NOT WORKING (mergedFeature.id()==0)
 			params['orientationDict'] = orientationDict
-			# if self.v: print orientationDict[mergedFeature.id()]
 
 		return [feature2.id()]
 	
@@ -404,9 +438,11 @@ class MergeLines(QObject):
 		
 		# BEGIN
 		mapCanvas = self.iface.mapCanvas() 
-		#if mapCanvas.layerCount() == 0: 
-			#QMessageBox.warning(self.iface.mainWindow(), "Join Line Plugin" , ("No active layer found"), QMessageBox.Ok) 
-			#return
+		
+		# some elements are disabled by default
+		self.dlg.toleranceCheckBox.setChecked(False)
+		self.dlg.toleranceSpinBox.setEnabled(False)
+		self.dlg.runButton.setEnabled(True)
 		
 		# list layers for input combobox
 		self.dlg.layerComboBox.clear() # clear the combobox

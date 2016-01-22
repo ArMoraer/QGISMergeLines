@@ -3,17 +3,17 @@
 <context>
     <name>MergeLines</name>
     <message>
-        <location filename="../merge_lines.py" line="420"/>
+        <location filename="../merge_lines.py" line="456"/>
         <source>Length</source>
         <translation>Longueur</translation>
     </message>
     <message>
-        <location filename="../merge_lines.py" line="420"/>
+        <location filename="../merge_lines.py" line="456"/>
         <source>Alignment</source>
         <translation>Orientation</translation>
     </message>
     <message>
-        <location filename="../merge_lines.py" line="183"/>
+        <location filename="../merge_lines.py" line="184"/>
         <source>&amp;MergeLines</source>
         <translation>&amp;MergeLines</translation>
     </message>
@@ -41,19 +41,24 @@
         <translation>Méthode de fusion :</translation>
     </message>
     <message>
-        <location filename="../merge_lines_dialog_base.ui" line="85"/>
+        <location filename="../merge_lines_dialog_base.ui" line="137"/>
         <source>OK</source>
         <translation>OK</translation>
     </message>
     <message>
-        <location filename="../merge_lines_dialog_base.ui" line="98"/>
+        <location filename="../merge_lines_dialog_base.ui" line="150"/>
         <source>Cancel</source>
         <translation>Annuler</translation>
     </message>
     <message>
-        <location filename="../merge_lines_dialog_base.ui" line="111"/>
+        <location filename="../merge_lines_dialog_base.ui" line="85"/>
         <source>Output layer name:</source>
         <translation>Couche de sortie :</translation>
+    </message>
+    <message>
+        <location filename="../merge_lines_dialog_base.ui" line="108"/>
+        <source>Connection tolerance:</source>
+        <translation>Tolérance de connexion :</translation>
     </message>
 </context>
 </TS>
