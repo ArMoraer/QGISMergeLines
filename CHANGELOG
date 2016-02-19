@@ -1,3 +1,7 @@
+0.3.0
+- Added support for spatial indexing (huge speed gain).
+- Removed "Connection tolerance" option (not compatible with spatial indexing).
+
 0.2.0
 - Improvment of alignment merging (avoid merging with "reverse" alignment).
 - Added "Connection tolerance" option.

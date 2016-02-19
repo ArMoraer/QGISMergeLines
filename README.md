@@ -40,14 +40,14 @@ Output:
 Example
 -------
 
-Input layer (15 lines):
+Input layer (17 lines):
 
 ![Input layer](/img/demo_input.png "Input layer")
 
-Output layer, 'Length' option (8 lines):
+Output layer, 'Length' option (9 lines):
 
 ![Output layer](/img/demo_output_length.png "Output layer")
 
-Output layer, 'Alignment' option (8 lines):
+Output layer, 'Alignment' option (9 lines):
 
 ![Output layer](/img/demo_output_alignment.png "Output layer")

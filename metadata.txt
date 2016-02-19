@@ -4,13 +4,15 @@
 # embedding metadata in __init__.py will 
 # is no longer supported since version 2.0.
 
-# This file should be included when you package your plugin.# Mandatory items:
+# This file should be included when you package your plugin.
+
+# Mandatory items:
 
 [general]
 name=MergeLines
 qgisMinimumVersion=2.0
 description=Simplifies the topology of a line network by merging adjacent lines
-version=0.2.0
+version=0.3.0
 author=Alexandre Delahaye
 email=menoetios@gmail.com
 
