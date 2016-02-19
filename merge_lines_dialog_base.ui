@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>459</width>
-    <height>243</height>
+    <height>207</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -63,7 +63,7 @@
    <property name="geometry">
     <rect>
      <x>10</x>
-     <y>200</y>
+     <y>160</y>
      <width>231</width>
      <height>31</height>
     </rect>
@@ -95,40 +95,11 @@
     </rect>
    </property>
   </widget>
-  <widget class="QCheckBox" name="toleranceCheckBox">
-   <property name="geometry">
-    <rect>
-     <x>10</x>
-     <y>140</y>
-     <width>181</width>
-     <height>22</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string>Connection tolerance:</string>
-   </property>
-  </widget>
-  <widget class="QDoubleSpinBox" name="toleranceSpinBox">
-   <property name="geometry">
-    <rect>
-     <x>270</x>
-     <y>140</y>
-     <width>171</width>
-     <height>27</height>
-    </rect>
-   </property>
-   <property name="decimals">
-    <number>6</number>
-   </property>
-   <property name="maximum">
-    <double>999.990000000000009</double>
-   </property>
-  </widget>
   <widget class="QPushButton" name="runButton">
    <property name="geometry">
     <rect>
      <x>360</x>
-     <y>200</y>
+     <y>160</y>
      <width>81</width>
      <height>27</height>
     </rect>
@@ -141,7 +112,7 @@
    <property name="geometry">
     <rect>
      <x>270</x>
-     <y>200</y>
+     <y>160</y>
      <width>81</width>
      <height>27</height>
     </rect>

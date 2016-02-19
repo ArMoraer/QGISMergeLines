@@ -175,7 +175,7 @@ class MergeLines(QObject):
 			callback=self.run,
 			parent=self.iface.mainWindow())
 		self.dlg.runButton.clicked.connect( self.onStart )
-		self.dlg.toleranceCheckBox.clicked.connect( self.setTolerance )
+		# self.dlg.toleranceCheckBox.clicked.connect( self.setTolerance )
 		self.partDone.connect( self.updateProgressBar )
 		self.allDone.connect( self.onFinished )
 
@@ -198,11 +198,11 @@ class MergeLines(QObject):
 
 		# input params
 		inputLayer = self.dlg.layerComboBox.itemData( self.dlg.layerComboBox.currentIndex() )
-		if self.dlg.toleranceCheckBox.isChecked(): tolerance = self.dlg.toleranceSpinBox.value()
-		else: tolerance = 0
+		# if self.dlg.toleranceCheckBox.isChecked(): tolerance = self.dlg.toleranceSpinBox.value()
+		# else: tolerance = 0
 		params = {'mergingMethod': self.dlg.mergingComboBox.currentIndex(),
 			'outputLayerName': self.dlg.outputLayerEdit.text(),
-			'tolerance': tolerance}
+			'tolerance': 0} # removed option
 		self.v = False # verbose
 
 		# ! Performance evaluation
@@ -438,28 +438,18 @@ class MergeLines(QObject):
 		
 		#if self.v: print "| {} deleted".format(feature2.id())
 
-		# Update spatial index. <mergedFeature> is added to the index in the updateAfterMerge function.
+		# Update spatial index. <mergedFeature> is added to the index in the updateAfterFeatureAdded function.
 		self.spatialIdx.deleteFeature( feature1 )
 		self.spatialIdx.deleteFeature( feature2 )
-		# self.spatialIdx.insertFeature( mergedFeature )
 
-		# self.spatialIdx.delete( feature1.id(), self.spatialIdx.bounds )
-		# self.spatialIdx.delete( feature2.id(), self.spatialIdx.bounds )
-		# bb = mergedFeature.geometry().boundingBox()
-		# self.spatialIdx.insert( mergedFeature.id(), (bb.xMinimum(), bb.yMinimum(), bb.xMaximum(), bb.yMaximum()) )
-
-		# Update self.outLyr		
-		# dataProvider.deleteFeatures( [feature1.id(), feature2.id()] )
-		# dataProvider.addFeatures( [mergedFeature] )
-		# TEST Features are updated via QgsVectorLayer instead of QgsDataProvider in order to emit the featureAdded signal, 
+		# Update self.outLyr
+		# Features are updated via QgsVectorLayer instead of QgsDataProvider in order to emit the featureAdded signal, 
 		# which then allows to properly update spatialIdx and orientationDict (issue with fids)
 		self.outLyr.startEditing()
 		self.outLyr.deleteFeature( feature1.id() )
 		self.outLyr.deleteFeature( feature2.id() )
 		self.outLyr.addFeature( mergedFeature )
 		self.outLyr.commitChanges()
-
-		# print "mergeLines::features after update={0}".format([f.id() for f in list(self.outLyr.getFeatures())])	
 
 		# Update params.orientationDict (delete <feature1> and <feature2>). <mergedFeature> is added to the dict in the updateAfterMerge function.
 		if params['mergingMethod'] == 1:
@@ -509,8 +499,8 @@ class MergeLines(QObject):
 		mapCanvas = self.iface.mapCanvas() 
 		
 		# some elements are disabled by default
-		self.dlg.toleranceCheckBox.setChecked(False)
-		self.dlg.toleranceSpinBox.setEnabled(False)
+		# self.dlg.toleranceCheckBox.setChecked(False)
+		# self.dlg.toleranceSpinBox.setEnabled(False)
 		self.dlg.runButton.setEnabled(True)
 		
 		# list layers for input combobox
