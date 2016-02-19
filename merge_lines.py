@@ -29,6 +29,7 @@ import resources
 # Import the code for the dialog
 from merge_lines_dialog import MergeLinesDialog
 import os.path
+import time
 
 
 class MergeLines(QObject):
@@ -203,6 +204,15 @@ class MergeLines(QObject):
 			'outputLayerName': self.dlg.outputLayerEdit.text(),
 			'tolerance': tolerance}
 		self.v = False # verbose
+
+		# ! Performance evaluation
+		# start_time = time.time()
+		# n_sim = 10
+		# for i in range(0, n_sim):
+		# 	print "sim #%s" % i
+		# 	self.joinLines( inputLayer, params )
+		# print "Time: %s seconds " % ( (time.time() - start_time) / n_sim)
+
 		self.joinLines( inputLayer, params )
 
 	@pyqtSlot()
@@ -232,18 +242,22 @@ class MergeLines(QObject):
 			outputLayerName = params['outputLayerName']
 		else:
 			outputLayerName = "output"
-		outputLayer = QgsVectorLayer("LineString?crs={0}&index=yes".format(crs), outputLayerName, "memory")
-		outPr = outputLayer.dataProvider()
+		self.outLyr = QgsVectorLayer("LineString?crs={0}&index=yes".format(crs), outputLayerName, "memory")
+		outPr = self.outLyr.dataProvider()
 		outPr.addAttributes( origPr.fields().toList() )
-		outputLayer.updateFields() # tell the vector layer to fetch changes from the provider
-		outputLayer.startEditing()
+		self.outLyr.updateFields() # tell the vector layer to fetch changes from the provider
+		self.outLyr.startEditing()
+		self.outLyr.commitChanges()
+
+		# featureAdded signal (address feature insertion bug)
+		self.outLyr.featureAdded.connect( self.updateAfterFeatureAdded )
 
 		# copy input layer to output layer
 		outPr.addFeatures( list(layer.getFeatures()) )
 
 		deletedFeaturesID = []
 		# TODO future improvment: first list features whose both endpoints are connected, then list the others (affluents)
-		featureList = sorted( list(outputLayer.getFeatures()), key=lambda feature: feature.geometry().length(), reverse=True ) # sort lines by descending length
+		featureList = sorted( list(self.outLyr.getFeatures()), key=lambda feature: feature.geometry().length(), reverse=True ) # sort lines by descending length
 		featureNumber = len(featureList)
 
 		# if mergingMethod is 'alignment', construct a dict with the orientation of each line
@@ -254,8 +268,12 @@ class MergeLines(QObject):
 					orientationDict[feature.id()] = self.getOrientation( feature )
 			params['orientationDict'] = orientationDict
 
+		# Build the spatial index for faster lookup.
+		self.spatialIdx = QgsSpatialIndex()
+		map( self.spatialIdx.insertFeature, featureList )
+
 		# iterates on lines
-		for index, feature in enumerate(featureList):
+		for idx, feature in enumerate(featureList):
 
 			if self.v: print "Line %d: " % feature.id()
 
@@ -267,8 +285,10 @@ class MergeLines(QObject):
 				if self.v: print "| already deleted, continue"
 				continue
 
+			# print "main::features={0}".format([f.id() for f in list(self.outLyr.getFeatures())])	
+
 			# get lines connected to current feature (i.e. lines that share one extremity)
-			connectedLines = self.getConnectedLines( outputLayer, feature, deletedFeaturesID, params )
+			connectedLines = self.getConnectedLines( feature, deletedFeaturesID, params )
 			if self.v: print "| %d connected lines" % len(connectedLines)
 
 			# merging
@@ -276,32 +296,33 @@ class MergeLines(QObject):
 				# Line is connected to several lines -> merging current line with one of the connected lines
 				mergingLine = self.chooseMergingLine( feature, connectedLines, params )
 				if self.v: print "| Merging with line %d" % mergingLine.id()
-				delFeaturesID = self.mergeLines( feature, mergingLine, outPr, params )
+				delFeaturesID, mergedFeature = self.mergeLines( feature, mergingLine, outPr, params )
 
 			elif len(connectedLines) == 1:
 				# Line is connected to one line -> merging current line with it
 				if self.v: print "| Merging with line %d" % connectedLines[0].id()
-				delFeaturesID = self.mergeLines( feature, connectedLines[0], outPr, params )
+				delFeaturesID, mergedFeature = self.mergeLines( feature, connectedLines[0], outPr, params )
 
 			else:
 				# Line is not connected to anything -> just keep current line
 				if self.v: print "| No merging"
-				outPr.deleteFeatures( [feature.id()] ) # fix a bug (feature does not appear)
-				outPr.addFeatures( [feature] )
+				# outPr.deleteFeatures( [feature.id()] ) # fix a bug (feature does not appear)
+				# outPr.addFeatures( [feature] )
 
 			deletedFeaturesID += delFeaturesID
-			self.partDone.emit(float(index)/featureNumber*100)
+			# print "deletedFeaturesID={0}".format( deletedFeaturesID )
+			self.partDone.emit( float(idx)/featureNumber*100 )
 		# end for
 
-		# Commit changes to outputLayer and display layer
-		outputLayer.commitChanges()
-		#outputLayer.updateExtents()
-		QgsMapLayerRegistry.instance().addMapLayer(outputLayer)
+		# Commit changes to self.outLyr and display layer
+		# self.outLyr.commitChanges()
+		#self.outLyr.updateExtents()
+		QgsMapLayerRegistry.instance().addMapLayer(self.outLyr)
 
 		self.allDone.emit()
 
 
-	def getConnectedLines( self, layer, feature, deletedFeaturesID, params ):
+	def getConnectedLines( self, feature, deletedFeaturesID, params ):
 		"""Get all lines which are connected to <feature> by one endpoint"""
 	
 		connectedLines = []
@@ -313,8 +334,23 @@ class MergeLines(QObject):
 		points = feature.geometry().asPolyline()
 		endPt0 = points[0]
 		endPt1 = points[-1]
+
+		# Get the ids of all the features in the index that are within
+		# the bounding box of the current feature because these are the ones
+		# that will be connected.
+		ids = self.spatialIdx.intersects( feature.geometry().boundingBox() )
+		allfeatures = {feature.id(): feature for feature in list(self.outLyr.getFeatures())}
 		
-		for ifeature in layer.getFeatures():
+		# if self.v: 
+		# 	print "| getConnectedLines::allfeatures={0}".format([f.id() for f in list(self.outLyr.getFeatures())])
+		# 	spatialList = sorted( list(self.spatialIdx.intersects( self.outLyr.extent() )) )
+		# 	print "| getConnectedLines::spatialIdx={0} {1}".format( len( spatialList ), spatialList )
+		
+		# for ifeature in self.outLyr.getFeatures():
+		for id in ids:
+			
+			ifeature = allfeatures[id]
+			if ifeature == feature: continue
 
 			if ifeature.geometry().isMultipart(): # multipart lines are ignored
 				continue
@@ -348,7 +384,7 @@ class MergeLines(QObject):
 
 			maxLength = 0
 			for line in connectedLines:
-				if self.v: print "| | ID {}: len={}".format(line.id(), line.geometry().length())
+				# if self.v: print "| | ID {}: len={}".format(line.id(), line.geometry().length())
 				if line.geometry().length() > maxLength:
 					mergingLine = line
 					maxLength = line.geometry().length()
@@ -365,7 +401,9 @@ class MergeLines(QObject):
 
 			for line in connectedLines:
 
-				# line.id() may be missing from orientationDict 
+				# line.id() may be missing from orientationDict
+				# Adding line.id() in mergeLines() causes issues (id not yet initialized)
+				# TODO: eventually put this part into <updateAfterFeatureAdded> (issue with params scope)
 				if not line.id() in orientationDict:
 					orientationDict = params['orientationDict']
 					orientationDict[line.id()] = self.getOrientation( line )
@@ -394,16 +432,36 @@ class MergeLines(QObject):
 		"""Merge 2 lines and their attributes. Update <params.orientationDict>"""
 		
 		# For now, the rule is simply to overwrite <feature2> attributes with <feature1> attributes
-		mergedFeature = QgsFeature( feature1.id() )
+		mergedFeature = QgsFeature()
 		mergedFeature.setGeometry( feature1.geometry().combine(feature2.geometry()) )
 		mergedFeature.setAttributes( feature1.attributes() )
 		
 		#if self.v: print "| {} deleted".format(feature2.id())
-		
-		dataProvider.deleteFeatures( [feature1.id(), feature2.id()] )
-		dataProvider.addFeatures( [mergedFeature] )
 
-		# Update params.orientationDict (delete <feature1> and <feature2> and update orientation of <mergedFeature>)
+		# Update spatial index. <mergedFeature> is added to the index in the updateAfterMerge function.
+		self.spatialIdx.deleteFeature( feature1 )
+		self.spatialIdx.deleteFeature( feature2 )
+		# self.spatialIdx.insertFeature( mergedFeature )
+
+		# self.spatialIdx.delete( feature1.id(), self.spatialIdx.bounds )
+		# self.spatialIdx.delete( feature2.id(), self.spatialIdx.bounds )
+		# bb = mergedFeature.geometry().boundingBox()
+		# self.spatialIdx.insert( mergedFeature.id(), (bb.xMinimum(), bb.yMinimum(), bb.xMaximum(), bb.yMaximum()) )
+
+		# Update self.outLyr		
+		# dataProvider.deleteFeatures( [feature1.id(), feature2.id()] )
+		# dataProvider.addFeatures( [mergedFeature] )
+		# TEST Features are updated via QgsVectorLayer instead of QgsDataProvider in order to emit the featureAdded signal, 
+		# which then allows to properly update spatialIdx and orientationDict (issue with fids)
+		self.outLyr.startEditing()
+		self.outLyr.deleteFeature( feature1.id() )
+		self.outLyr.deleteFeature( feature2.id() )
+		self.outLyr.addFeature( mergedFeature )
+		self.outLyr.commitChanges()
+
+		# print "mergeLines::features after update={0}".format([f.id() for f in list(self.outLyr.getFeatures())])	
+
+		# Update params.orientationDict (delete <feature1> and <feature2>). <mergedFeature> is added to the dict in the updateAfterMerge function.
 		if params['mergingMethod'] == 1:
 
 			orientationDict = params['orientationDict']
@@ -412,8 +470,19 @@ class MergeLines(QObject):
 			# orientationDict[mergedFeature.id()] = self.getOrientation( feature1 ) # update orientation of <mergedFeature> NOT WORKING (mergedFeature.id()==0)
 			params['orientationDict'] = orientationDict
 
-		return [feature2.id()]
+		return ([feature1.id(), feature2.id()], mergedFeature) #[feature2.id()] in v0.2.0 ?
+
 	
+	def updateAfterFeatureAdded( self, fid ):
+		"""Adds feature with id <fid> to <params.orientationDict> and spatial index."""
+
+		if fid < 0: # temporary id
+			return
+
+		if self.v: print "| updateAfterFeatureAdded called for fid=%d" % fid
+
+		feature = list( self.outLyr.getFeatures( QgsFeatureRequest(fid) ) )[0]
+		self.spatialIdx.insertFeature( feature )
 
 	def getOrientation( self, feature ):
 		"""Gets the orientation (direction) of a line"""
