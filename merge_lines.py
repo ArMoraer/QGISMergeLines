@@ -306,17 +306,18 @@ class MergeLines(QObject):
 			else:
 				# Line is not connected to anything -> just keep current line
 				if self.v: print "| No merging"
+				delFeaturesID = None
 				# outPr.deleteFeatures( [feature.id()] ) # fix a bug (feature does not appear)
 				# outPr.addFeatures( [feature] )
 
-			deletedFeaturesID += delFeaturesID
+			if delFeaturesID is not None:
+				deletedFeaturesID += delFeaturesID
 			# print "deletedFeaturesID={0}".format( deletedFeaturesID )
 			self.partDone.emit( float(idx)/featureNumber*100 )
 		# end for
 
 		# Commit changes to self.outLyr and display layer
 		# self.outLyr.commitChanges()
-		#self.outLyr.updateExtents()
 		QgsMapLayerRegistry.instance().addMapLayer(self.outLyr)
 
 		self.allDone.emit()

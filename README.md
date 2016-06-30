@@ -31,7 +31,6 @@ Input:
 
 * Input layer: line vector layer;
 * Merging method: *Length* or *Alignment* (see above).
-* Connection tolerance: if lines endpoints are not properly snapped to each other, this parameter sets a distance tolerance between endpoints.
 
 Output:
 
