@@ -10,9 +10,9 @@
 
 [general]
 name=MergeLines
-qgisMinimumVersion=2.0
+qgisMinimumVersion=3.0
 description=Simplifies the topology of a line network by merging adjacent lines
-version=0.3.1
+version=0.4.0
 author=Alexandre Delahaye
 email=menoetios@gmail.com
 
