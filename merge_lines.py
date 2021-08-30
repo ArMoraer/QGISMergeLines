@@ -20,14 +20,15 @@
  *                                                                         *
  ***************************************************************************/
 """
-from PyQt4.QtCore import pyqtSignal, pyqtSlot, QObject, QSettings, QThread, QTranslator, qVersion, QCoreApplication, QVariant
-from PyQt4.QtGui import QAction, QIcon, QMessageBox
+from PyQt5.QtCore import pyqtSignal, pyqtSlot, QObject, QSettings, QThread, QTranslator, qVersion, QCoreApplication, QVariant
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QAction, QMessageBox
 from qgis.core import *
 import math
 # Initialize Qt resources from file resources.py
-import resources
+from .resources import *
 # Import the code for the dialog
-from merge_lines_dialog import MergeLinesDialog
+from .merge_lines_dialog import MergeLinesDialog
 import os.path
 import time
 
@@ -203,15 +204,15 @@ class MergeLines(QObject):
 		params = {'mergingMethod': self.dlg.mergingComboBox.currentIndex(),
 			'outputLayerName': self.dlg.outputLayerEdit.text(),
 			'tolerance': 0} # removed option
-		self.v = False # verbose
+		self.v = True # verbose
 
 		# ! Performance evaluation
 		# start_time = time.time()
 		# n_sim = 10
 		# for i in range(0, n_sim):
-		# 	print "sim #%s" % i
+		# 	QgsMessageLog.logMessage ("sim #%s" % i, "MergeLines")
 		# 	self.joinLines( inputLayer, params )
-		# print "Time: %s seconds " % ( (time.time() - start_time) / n_sim)
+		# QgsMessageLog.logMessage ("Time: %s seconds " % ( (time.time() - start_time) / n_sim), "MergeLines")
 
 		self.joinLines( inputLayer, params )
 
@@ -270,55 +271,55 @@ class MergeLines(QObject):
 
 		# Build the spatial index for faster lookup.
 		self.spatialIdx = QgsSpatialIndex()
-		map( self.spatialIdx.insertFeature, featureList )
+		self.spatialIdx.addFeatures(featureList)
 
 		# iterates on lines
 		for idx, feature in enumerate(featureList):
 
-			if self.v: print "Line %d: " % feature.id()
+			if self.v: QgsMessageLog.logMessage ("Line %d: " % feature.id(), "MergeLines")
 
 			if feature.geometry().isMultipart(): # multipart lines are ignored
-				if self.v: print "| is multipart, continue"
+				if self.v: QgsMessageLog.logMessage ("| is multipart, continue", "MergeLines")
 				continue
 
 			if feature.id() in deletedFeaturesID:
-				if self.v: print "| already deleted, continue"
+				if self.v: QgsMessageLog.logMessage ("| already deleted, continue", "MergeLines")
 				continue
 
-			# print "main::features={0}".format([f.id() for f in list(self.outLyr.getFeatures())])	
+			# QgsMessageLog.logMessage ("main::features={0}".format([f.id() for f in list(self.outLyr.getFeatures())]), "MergeLines")
 
 			# get lines connected to current feature (i.e. lines that share one extremity)
 			connectedLines = self.getConnectedLines( feature, deletedFeaturesID, params )
-			if self.v: print "| %d connected lines" % len(connectedLines)
+			if self.v: QgsMessageLog.logMessage ("| %d connected lines" % len(connectedLines), "MergeLines")
 
 			# merging
 			if len(connectedLines) > 1:
 				# Line is connected to several lines -> merging current line with one of the connected lines
 				mergingLine = self.chooseMergingLine( feature, connectedLines, params )
-				if self.v: print "| Merging with line %d" % mergingLine.id()
+				if self.v: QgsMessageLog.logMessage ("| Merging with line %d" % mergingLine.id(), "MergeLines")
 				delFeaturesID, mergedFeature = self.mergeLines( feature, mergingLine, outPr, params )
 
 			elif len(connectedLines) == 1:
 				# Line is connected to one line -> merging current line with it
-				if self.v: print "| Merging with line %d" % connectedLines[0].id()
+				if self.v: QgsMessageLog.logMessage ("| Merging with line %d" % connectedLines[0].id(), "MergeLines")
 				delFeaturesID, mergedFeature = self.mergeLines( feature, connectedLines[0], outPr, params )
 
 			else:
 				# Line is not connected to anything -> just keep current line
-				if self.v: print "| No merging"
+				if self.v: QgsMessageLog.logMessage ("| No merging", "MergeLines")
 				delFeaturesID = None
 				# outPr.deleteFeatures( [feature.id()] ) # fix a bug (feature does not appear)
 				# outPr.addFeatures( [feature] )
 
 			if delFeaturesID is not None:
 				deletedFeaturesID += delFeaturesID
-			# print "deletedFeaturesID={0}".format( deletedFeaturesID )
+			# QgsMessageLog.logMessage ("deletedFeaturesID={0}".format( deletedFeaturesID ), "MergeLines")
 			self.partDone.emit( float(idx)/featureNumber*100 )
 		# end for
 
 		# Commit changes to self.outLyr and display layer
 		# self.outLyr.commitChanges()
-		QgsMapLayerRegistry.instance().addMapLayer(self.outLyr)
+		QgsProject.instance().addMapLayer(self.outLyr)
 
 		self.allDone.emit()
 
@@ -329,7 +330,7 @@ class MergeLines(QObject):
 		connectedLines = []
 
 		# if feature.geometry().isMultipart(): # multipart lines are ignored
-		#   if self.v: print "Line {} is multipart, ignored".format(feature.id())
+		#   if self.v: QgsMessageLog.logMessage ("Line {} is multipart, ignored".format(feature.id()), "MergeLines")
 		#   return []
 
 		points = feature.geometry().asPolyline()
@@ -343,9 +344,9 @@ class MergeLines(QObject):
 		allfeatures = {feature.id(): feature for feature in list(self.outLyr.getFeatures())}
 		
 		# if self.v: 
-		# 	print "| getConnectedLines::allfeatures={0}".format([f.id() for f in list(self.outLyr.getFeatures())])
-		# 	spatialList = sorted( list(self.spatialIdx.intersects( self.outLyr.extent() )) )
-		# 	print "| getConnectedLines::spatialIdx={0} {1}".format( len( spatialList ), spatialList )
+			# QgsMessageLog.logMessage ("| getConnectedLines::allfeatures={0}".format([f.id() for f in list(self.outLyr.getFeatures())]), "MergeLines")
+			# spatialList = sorted( list(self.spatialIdx.intersects( self.outLyr.extent() )) )
+			# QgsMessageLog.logMessage ("| getConnectedLines::spatialIdx={0} {1}".format( len( spatialList ), spatialList ), "MergeLines")
 		
 		# for ifeature in self.outLyr.getFeatures():
 		for id in ids:
@@ -385,7 +386,7 @@ class MergeLines(QObject):
 
 			maxLength = 0
 			for line in connectedLines:
-				# if self.v: print "| | ID {}: len={}".format(line.id(), line.geometry().length())
+				# if self.v: QgsMessageLog.logMessage ("| | ID {}: len={}".format(line.id(), line.geometry().length()), "MergeLines")
 				if line.geometry().length() > maxLength:
 					mergingLine = line
 					maxLength = line.geometry().length()
@@ -398,7 +399,7 @@ class MergeLines(QObject):
 			featureEndPt0 = feature.geometry().asPolyline()[0]
 			featureEndPt1 = feature.geometry().asPolyline()[-1]
 
-			if self.v: print "| Orient. of line {0}: {1}".format(feature.id(), featureOrientation)
+			if self.v: QgsMessageLog.logMessage ("| Orient. of line {0}: {1}".format(feature.id(), featureOrientation), "MergeLines")
 
 			for line in connectedLines:
 
@@ -419,7 +420,7 @@ class MergeLines(QObject):
 				if ( (featureEndPt0 == lineEndPt0) or (featureEndPt1 == lineEndPt1) ):
 					orient = orient + 180 % 360
 
-				if self.v: print "| | ID {}: orient={}".format(line.id(), orient)
+				if self.v: QgsMessageLog.logMessage ("| | ID {}: orient={}".format(line.id(), orient), "MergeLines")
 
 				# Finally
 				if abs( orient - featureOrientation ) < minDiff:
@@ -437,7 +438,7 @@ class MergeLines(QObject):
 		mergedFeature.setGeometry( feature1.geometry().combine(feature2.geometry()) )
 		mergedFeature.setAttributes( feature1.attributes() )
 		
-		#if self.v: print "| {} deleted".format(feature2.id())
+		#if self.v: QgsMessageLog.logMessage ("| {} deleted".format(feature2.id()), "MergeLines")
 
 		# Update spatial index. <mergedFeature> is added to the index in the updateAfterFeatureAdded function.
 		self.spatialIdx.deleteFeature( feature1 )
@@ -470,7 +471,7 @@ class MergeLines(QObject):
 		if fid < 0: # temporary id
 			return
 
-		if self.v: print "| updateAfterFeatureAdded called for fid=%d" % fid
+		if self.v: QgsMessageLog.logMessage ("| updateAfterFeatureAdded called for fid=%d" % fid, "MergeLines")
 
 		feature = list( self.outLyr.getFeatures( QgsFeatureRequest(fid) ) )[0]
 		self.spatialIdx.insertFeature( feature )
@@ -506,9 +507,9 @@ class MergeLines(QObject):
 		
 		# list layers for input combobox
 		self.dlg.layerComboBox.clear() # clear the combobox
-		layers = QgsMapLayerRegistry.instance().mapLayers().values() # Create list with all layers
+		layers = QgsProject.instance().mapLayers().values() # Create list with all layers
 		for layer in layers:
-			if layer.type() == QgsMapLayer.VectorLayer and layer.geometryType() == QGis.Line: # check if layer is vector & line type
+			if layer.type() == QgsMapLayer.VectorLayer and layer.geometryType() == QgsWkbTypes.LineGeometry: # check if layer is vector & line type
 				self.dlg.layerComboBox.addItem( layer.name(), layer ) 
 
 		# merging methods combobox
