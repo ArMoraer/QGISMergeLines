@@ -1,3 +1,6 @@
+0.4.0
+- Inizial attempt to port the plugin to QGIS3
+
 0.3.1
 - Fixed bug on startup ("local variable 'delFeaturesID' referenced before assignment")
 
