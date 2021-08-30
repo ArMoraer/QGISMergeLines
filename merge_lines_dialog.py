@@ -23,13 +23,14 @@
 
 import os
 
-from PyQt4 import QtGui, uic
+from PyQt5 import uic
+from PyQt5.QtWidgets import QDialog
 
 FORM_CLASS, _ = uic.loadUiType(os.path.join(
     os.path.dirname(__file__), 'merge_lines_dialog_base.ui'))
 
 
-class MergeLinesDialog(QtGui.QDialog, FORM_CLASS):
+class MergeLinesDialog(QDialog, FORM_CLASS):
     def __init__(self, parent=None):
         """Constructor."""
         super(MergeLinesDialog, self).__init__(parent)
